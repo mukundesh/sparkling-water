@@ -66,7 +66,8 @@ class ExternalH2OBackend(val hc: H2OContext) extends SparklingBackend with Exter
       "-jobname", H2O_JOB_NAME.format(sparkAppId),
       "-mapperXmx", conf.mapperXmx,
       "-output", conf.HDFSOutputDir.get,
-      "-disown"
+      "-disown",
+      "-J", "-watchdog_stop_without_client"
     )
 
     // start external h2o cluster and log the output
@@ -128,8 +129,8 @@ class ExternalH2OBackend(val hc: H2OContext) extends SparklingBackend with Exter
   }
 
   private def stopExternalCluster(): Unit = {
-    // Send disconnect command from the watchdog client in case of orderly shutdown
-    UDPClientEvent.ClientEvent.Type.DISCONNECT.broadcast(H2O.SELF)
+    // Shutdown the H2O cluster, this is a planned shutdown
+    H2O.shutdown(0)
     log.info("Stopping external H2O cluster!")
   }
 
