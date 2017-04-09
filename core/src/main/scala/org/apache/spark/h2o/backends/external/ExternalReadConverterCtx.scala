@@ -20,7 +20,7 @@ package org.apache.spark.h2o.backends.external
 
 import org.apache.spark.h2o.converters.ReadConverterCtx
 import org.apache.spark.h2o.utils.NodeDesc
-import water.{ExternalFrameReaderClient, ExternalFrameUtils}
+import water.{ExternalFrameConfirmationException, ExternalFrameReaderClient, ExternalFrameUtils}
 /**
   *
   * @param keyName key name of frame to query data from
@@ -55,10 +55,15 @@ class ExternalReadConverterCtx(override val keyName: String, override val chunkI
   override protected def doubleAt(source: DataSource): Double = source.readDouble()
   override protected def string(source: DataSource) = source.readString()
 
+  /**
+    * @throws ExternalFrameConfirmationException in case of confirmation failure.
+    *         This has also effect of Spark stopping the current job and
+    *         rescheduling it
+    */
   override def hasNext: Boolean = {
     val isNext = super.hasNext
     if(!isNext){
-      externalFrameReader.waitUntilAllReceived()
+      externalFrameReader.waitUntilAllReceived(10)
       socketChannel.close()
     }
     isNext
